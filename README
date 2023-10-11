@@ -1,0 +1,130 @@
+Copyright Similea Alin-Andrei 314CA 2022-2023
+
+Firstly we define some structures to help us deal easier with the images.
+1. "select_struct" will help us with the selections and we memorize in it the
+coordinates of the selection: x1, x2, y1, y2.
+2. "pixel_struct" is defining a pixel, regardless of the image type. In this,
+we memorize either grayscale or r, g, b(standing for red, green and blue).
+3. "image" to store every variable we need to create a ppm or pgm image: its
+type, which is only 2 characters long ( plus the string terminator '\0'); the
+image's height, width, the maximum value of a pixel's colour intensity and the
+matrix of pixels and the selection if there's the case.
+
+In the main function, we're going to use a "while" loop which ends when there's
+no more lines in the file we are reading from or when we read the "EXIT"
+command.
+At every iteration of the loop, we read a whole line and then we separate it in
+words keeping in mind the necessary delimiters (mainly space, but could also be
+the end of line "\n"). 
+
+The first word from the line needs to be a "command" string which we will
+translate into an integer through the function "command_type". This will make
+things easier for us because we will be able to use "switch case".
+
+Depending on the command type, we will make different operations:
+1.LOAD -> We will load into memory an image through the "load" function.
+In "load" we determine the next word from the formerly read line to find out
+the file path where the image is stored.
+If there's been another image loaded previously, we need to deallocate its
+memory. We can keep track of the loaded images with the variable
+"loaded_img_now" which tells us if there are any images loaded at the moment.
+We open the file and, if successful, allocate memory for the image.
+We use a for loop because we know that we firstly need to read 4 elements from
+the file: image_type, width, height and max_value. However, there can be
+comments so we need to skip these lines. We do this by firstly reading an
+element. If it starts with a "#", we have to read the whole line(skip it) and
+get back until all the comments are skipped.
+If it's not a comment, but it's our first iteration, that means that we are
+reading the string for the image_type, the rest of three elements will be
+numbers that need to be transformed from strings to integers(to distinguish
+and keep track of them we use an array of "values").
+We then allocate the memory and create the matrix of pixels depending on the
+image type.
+If the types are "P2" or "P3", the images are written in ASCII so we can read
+them as we usually read from an ASCII file.
+If the types are "P5" or "P6", we will have to read as we do from a binary
+file. We memorize the position where the matrix starts (file_pos) and we read
+the matrix with the function "load_binary".
+Then, we allocate memory and initialize the image's regular selection(the whole
+image).
+
+2.SELECT or SELECT ALL -> We will use the function "select_image". Firstly, we
+separate the words remaining on the line we previously read in main. 
+If the next word is "ALL", we execute the "SELECT ALL" command with the
+"select_all" function which sets the selection to the image's dimensions.
+Otherwise, we verify if the next words are exactly four numbers (the borders of
+the selection) and if they are in order (x1 < x2, y1 < y2; if not, we switch
+them up). Then, with the "validate_selection" function, we verify if the
+selection borders are negative or higher than the image's height and width, if
+more than 2 have the same value(this way we would have no element in the
+selection) and if there are more than 2 borders that have the same value as the
+image's height or width(this way we would also have no element in the
+selection). If the borders are valid, we modify the image's selection
+accordingly.
+
+3.HISTOGRAM -> We use the function "histogram". Firstly, we determine the
+number of maximum stars and the number of bins with the same algorithm we
+previously used. If the valid conditions for histogram are met, we create a
+frequency array which will memorize how many pixels are found in a bin's
+interval. We use the interval to determine how many elements does a bin have.
+Then, for each pixel we determine in which bin they belong by dividing its
+value with how many elements are in an interval. We need to keep in mind the
+decimals and then approximate the number to the lowest integer.
+We then find out the greatest number of elements in a bin that will have the
+maximum number of stars and, based on this, we determine the number of stars of
+the other bins and print the histogram.
+
+4.EQUALIZE -> In the function "equalize", we use the same principle as we did
+at the histogram with the frequency array, but now we memorize the frequency of
+ every separate pixel. Then, we use the algorithm explained in the homework
+documentation.
+
+5.CROP -> In the "crop" function, we initialize another image that is going to
+be the "result" of the initial cropped image. The type remains the same and the
+max_value. We modify the height and width according to the selection and then
+create the corresponding matrix of pixels. Finally, we determine the new
+selection, which is going to be the resulting image's borders. We don't forget
+to deallocate the initial image's memory.
+
+6.APPLY -> In the "apply" function, we have to find out which type of apply we
+need to execute. Depending on this, we create the kernel matrix "mat" that we
+need to apply on the image.
+We then use the "apply_kernel" function to edit the image. We have to create a
+copy of the initial image, because we need to keep the old values of the pixels
+to properly apply the kernel on all pixels.
+We then have to determine the borders from where we will apply the kernel: if
+in the current selection we will have one of the image's borders, we won't be
+able to apply the kernel on that line/column. We verify all this with the
+functions "border_kernel_min" and "border_kernel_max".
+If we have the proper image type, we will use a double for loop, starting from
+the 'minimum borders - 1' because we are determining the new value of the 
+ixel[i_min][j_min], so we have to start from pixel[i_min-1][j_min-1] and create
+the sums for the elements that correspond to a matrix of 3x3, from
+pixel[i_min-1][j_min-1] to pixel[i_min+1][j_min-1], because the current pixel
+is the center of the supposed matrix. Because certain kernels have real numbers
+as elements, we have to determine the sums as doubles and then round them to an
+integer. The function "clamp" keeps the sums in the [0,max_value]
+interval(explained in the homework documentation).
+
+7.SAVE -> In the "save" function, we determine the file_path from the remaining
+line that we previously read in main. Then, we verify if this is followed by
+the "ascii" string or not in order to save the file either in an ASCII file or
+in a binary file.
+If there's no parameter ("ascii") we use the "save_binary" function. We store
+the image details as ASCII, but the pixel values need to be transformed in
+unsigned char and then written as binary.
+If there is the "ascii" parameter, we use the "save_text" function in which we
+store everything as ASCII.
+
+8.EXIT -> In the "exit_program" function, we deallocate the image's memory if
+there is a loaded image and the program ends.
+
+9.ROTATE -> In the "rotate" function, we determine whether we need to rotate
+the entire image or just the selection. We create one function to rotate an
+image to 90 degrees and another one to rotate it to -90 degrees. Depending on
+the angle, we will use these functions once or more times (180 degrees - twice,
+270 degrees - three times etc.).
+In order to efficiently work with the memory, we will need to create an
+auxiliary variable that will store the resulting image after we deallocate
+the initial image's memory. The resulting image will subsequently be copied in
+the initial image's memory and then be freed so we won't have any memory leaks.
