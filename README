@@ -1,4 +1,4 @@
-Copyright Similea Alin-Andrei 314CA 2022-2023
+Copyright Similea Alin-Andrei 2022-2023
 
 Firstly we define some structures to help us deal easier with the images.
 1. "select_struct" will help us with the selections and we memorize in it the
